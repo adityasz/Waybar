@@ -51,6 +51,8 @@ See the output of "hyprctl clients" for examples
 
 *{initialClass}*: The initial class of the focused window.
 
+*{appName}*: The application name from the desktop file.
+
 # REWRITE RULES
 
 *rewrite* is an object where keys are regular expressions and values are

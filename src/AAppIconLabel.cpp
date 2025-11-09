@@ -87,26 +87,35 @@ std::optional<std::string> getDesktopFilePath(const std::string& app_identifier,
   return {};
 }
 
-std::optional<Glib::ustring> getIconName(const std::string& app_identifier,
-                                         const std::string& alternative_app_identifier) {
+struct AppInfo {
+  std::optional<Glib::ustring> icon_name;
+  std::optional<Glib::ustring> app_name;
+};
+
+AppInfo getAppInfo(const std::string& app_identifier,
+                   const std::string& alternative_app_identifier) {
+  AppInfo info;
   const auto desktop_file_path = getDesktopFilePath(app_identifier, alternative_app_identifier);
   if (!desktop_file_path.has_value()) {
     // Try some heuristics to find a matching icon
 
     if (DefaultGtkIconThemeWrapper::has_icon(app_identifier)) {
-      return app_identifier;
+      info.icon_name = app_identifier;
+      return info;
     }
 
     auto app_identifier_desktop = app_identifier + "-desktop";
     if (DefaultGtkIconThemeWrapper::has_icon(app_identifier_desktop)) {
-      return app_identifier_desktop;
+      info.icon_name = app_identifier_desktop;
+      return info;
     }
 
     auto first_space = app_identifier.find_first_of(' ');
     if (first_space != std::string::npos) {
       auto first_word = toLowerCase(app_identifier.substr(0, first_space));
       if (DefaultGtkIconThemeWrapper::has_icon(first_word)) {
-        return first_word;
+        info.icon_name = first_word;
+        return info;
       }
     }
 
@@ -114,17 +123,19 @@ std::optional<Glib::ustring> getIconName(const std::string& app_identifier,
     if (first_dash != std::string::npos) {
       auto first_word = toLowerCase(app_identifier.substr(0, first_dash));
       if (DefaultGtkIconThemeWrapper::has_icon(first_word)) {
-        return first_word;
+        info.icon_name = first_word;
+        return info;
       }
     }
 
-    return {};
+    return info;
   }
 
   try {
     Glib::KeyFile desktop_file;
     desktop_file.load_from_file(desktop_file_path.value());
-    return desktop_file.get_string("Desktop Entry", "Icon");
+    info.icon_name = desktop_file.get_string("Desktop Entry", "Icon");
+    info.app_name = desktop_file.get_string("Desktop Entry", "Name");
   } catch (Glib::FileError& error) {
     spdlog::warn("Error while loading desktop file {}: {}", desktop_file_path.value(),
                  error.what().c_str());
@@ -132,7 +143,12 @@ std::optional<Glib::ustring> getIconName(const std::string& app_identifier,
     spdlog::warn("Error while loading desktop file {}: {}", desktop_file_path.value(),
                  error.what().c_str());
   }
-  return {};
+  return info;
+}
+
+std::optional<Glib::ustring> getIconName(const std::string& app_identifier,
+                                         const std::string& alternative_app_identifier) {
+  return getAppInfo(app_identifier, alternative_app_identifier).icon_name;
 }
 
 void AAppIconLabel::updateAppIconName(const std::string& app_identifier,
@@ -141,11 +157,16 @@ void AAppIconLabel::updateAppIconName(const std::string& app_identifier,
     return;
   }
 
-  const auto icon_name = getIconName(app_identifier, alternative_app_identifier);
-  if (icon_name.has_value()) {
-    app_icon_name_ = icon_name.value();
+  const auto app_info = getAppInfo(app_identifier, alternative_app_identifier);
+  if (app_info.icon_name.has_value()) {
+    app_icon_name_ = app_info.icon_name.value();
   } else {
     app_icon_name_ = "";
+  }
+  if (app_info.app_name.has_value()) {
+    app_name_ = app_info.app_name.value();
+  } else {
+    app_name_ = "";
   }
   update_app_icon_ = true;
 }

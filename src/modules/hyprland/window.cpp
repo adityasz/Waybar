@@ -57,7 +57,8 @@ auto Window::update() -> void {
         fmt::format(fmt::runtime(format_), fmt::arg("title", windowName),
                     fmt::arg("initialTitle", windowData_.initial_title),
                     fmt::arg("class", windowData_.class_name),
-                    fmt::arg("initialClass", windowData_.initial_class_name)),
+                    fmt::arg("initialClass", windowData_.initial_class_name),
+                    fmt::arg("appName", app_name_)),
         config_["rewrite"]);
     label_.set_markup(label_text);
   } else {
@@ -74,7 +75,8 @@ auto Window::update() -> void {
           fmt::format(fmt::runtime(tooltip_format), fmt::arg("title", windowName),
                       fmt::arg("initialTitle", windowData_.initial_title),
                       fmt::arg("class", windowData_.class_name),
-                      fmt::arg("initialClass", windowData_.initial_class_name)));
+                      fmt::arg("initialClass", windowData_.initial_class_name),
+                      fmt::arg("appName", app_name_)));
     } else if (!label_text.empty()) {
       label_.set_tooltip_text(label_text);
     }
@@ -227,6 +229,7 @@ void Window::queryActiveWorkspace() {
   } else {
     focused_ = false;
     windowData_ = WindowData{};
+    app_name_ = "";
     allFloating_ = false;
     swallowing_ = false;
     fullscreen_ = false;

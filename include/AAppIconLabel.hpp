@@ -22,6 +22,7 @@ class AAppIconLabel : public AIconLabel {
   unsigned app_icon_size_{24};
   bool update_app_icon_{true};
   std::string app_icon_name_;
+  std::string app_name_;
 };
 
 }  // namespace waybar
