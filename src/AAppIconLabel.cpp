@@ -153,22 +153,29 @@ std::optional<Glib::ustring> getIconName(const std::string& app_identifier,
 
 void AAppIconLabel::updateAppIconName(const std::string& app_identifier,
                                       const std::string& alternative_app_identifier) {
-  if (!iconEnabled()) {
+
+                                        bool need_icon = iconEnabled();
+  bool need_app_name = format_.find("{appName}") != std::string::npos;
+
+  if (!need_icon && !need_app_name)
     return;
-  }
 
   const auto app_info = getAppInfo(app_identifier, alternative_app_identifier);
-  if (app_info.icon_name.has_value()) {
-    app_icon_name_ = app_info.icon_name.value();
-  } else {
-    app_icon_name_ = "";
+
+  if (need_app_name) {
+    if (app_info.app_name.has_value())
+      app_name_ = app_info.app_name.value();
+    else
+      app_name_ = "";
   }
-  if (app_info.app_name.has_value()) {
-    app_name_ = app_info.app_name.value();
-  } else {
-    app_name_ = "";
+
+  if (need_icon) {
+    if (app_info.icon_name.has_value())
+      app_icon_name_ = app_info.icon_name.value();
+    else
+      app_icon_name_ = "";
+    update_app_icon_ = true;
   }
-  update_app_icon_ = true;
 }
 
 void AAppIconLabel::updateAppIcon() {
