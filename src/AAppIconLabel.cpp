@@ -7,7 +7,9 @@
 #include <spdlog/spdlog.h>
 
 #include <filesystem>
+#include <mutex>
 #include <optional>
+#include <unordered_map>
 
 #include "util/gtk_icon.hpp"
 
@@ -92,8 +94,22 @@ struct AppInfo {
   std::optional<Glib::ustring> app_name;
 };
 
+static std::unordered_map<std::string, AppInfo> app_info_cache;
+static std::mutex app_info_cache_mutex;
+
 AppInfo getAppInfo(const std::string& app_identifier,
                    const std::string& alternative_app_identifier) {
+  std::string cache_key = app_identifier;
+  if (!alternative_app_identifier.empty())
+    cache_key += "|" + alternative_app_identifier;
+
+  {
+    std::lock_guard<std::mutex> lock(app_info_cache_mutex);
+    auto it = app_info_cache.find(cache_key);
+    if (it != app_info_cache.end())
+      return it->second;
+  }
+
   AppInfo info;
   const auto desktop_file_path = getDesktopFilePath(app_identifier, alternative_app_identifier);
   if (!desktop_file_path.has_value()) {
@@ -143,6 +159,12 @@ AppInfo getAppInfo(const std::string& app_identifier,
     spdlog::warn("Error while loading desktop file {}: {}", desktop_file_path.value(),
                  error.what().c_str());
   }
+
+  {
+    std::lock_guard<std::mutex> lock(app_info_cache_mutex);
+    app_info_cache[cache_key] = info;
+  }
+
   return info;
 }
 
